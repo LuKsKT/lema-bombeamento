@@ -1,75 +1,48 @@
-# ----------------------------------------------
-# Teste do Lema do Bombeamento para Linguagens Formais
-# Autor: [Seu Nome Aqui]
-# Linguagem: Python
-# ----------------------------------------------
-
-def testar_lema_bombeamento(linguagem, p, w, max_divisoes_exibidas=3):
+def testar_lema_bombeamento(linguagem, p, w, max_repeticoes=3):
     n = len(w)
     if n < p:
-        return "❗ A cadeia w é menor que o valor de bombeamento p. O lema não se aplica."
+        return f"A cadeia w='{w}' é menor que o valor de bombeamento p={p}. O lema não se aplica."
 
-    violacoes = []
-    divisoes_exibidas = 0
-    resultado_final = []
+    encontrou_violacao = False
 
     for i in range(p + 1):
         for j in range(1, p - i + 1):
-            if divisoes_exibidas >= max_divisoes_exibidas:
-                continue  # Ainda testa, mas não imprime mais divisões
+            k = n - i - j
+            if i + j + k != n:
+                continue
 
             x = w[:i]
             y = w[i:i + j]
             z = w[i + j:]
 
-            divisao_resultado = [f"\nDivisão: x='{x}', y='{y}', z='{z}'"]
-            violacao_ocorreu = False
+            print(f"\nDivisão: x='{x}', y='{y}', z='{z}'")
 
-            for repeticoes in range(5):  # i = 0 a 4
+            for repeticoes in range(max_repeticoes + 1):
                 nova_cadeia = x + (y * repeticoes) + z
                 pertence = linguagem(nova_cadeia)
-                status = "PERTENCE" if pertence else "NÃO pertence"
-                divisao_resultado.append(f"  i = {repeticoes} → '{nova_cadeia}' → {status} à linguagem.")
+                print(f"  {repeticoes} repetições de y: '{nova_cadeia}' -> {'PERTENCE' if pertence else 'NÃO PERTENCE'}")
 
-                if not pertence and not violacao_ocorreu:
-                    violacao_ocorreu = True
-                    violacoes.append({
-                        "x": x, "y": y, "z": z,
-                        "i": repeticoes,
-                        "cadeia": nova_cadeia
-                    })
+                if not pertence:
+                    print(f"\n⚠️ Violação: repetindo y='{y}' {repeticoes} vezes gerou '{nova_cadeia}', que não pertence à linguagem.")
+                    encontrou_violacao = True
+                    return f"\n✅ O lema foi violado para a divisão x='{x}', y='{y}', z='{z}'. A linguagem não é regular."
 
-            resultado_final.extend(divisao_resultado)
-            divisoes_exibidas += 1
+    if not encontrou_violacao:
+        return "\n✅ Para todas as divisões e repetições testadas, a cadeia permaneceu na linguagem. Nenhuma violação encontrada."
 
-    if violacoes:
-        resultado_final.append("\n🛑 Conclusão: A linguagem testada **NÃO é regular**, pois houve violação do Lema do Bombeamento.")
-        for v in violacoes:
-            resultado_final.append(
-                f"\n⚠️ Violação: x='{v['x']}', y='{v['y']}', z='{v['z']}'\n"
-                f"   Com i = {v['i']}, gerou '{v['cadeia']}' que NÃO pertence à linguagem."
-            )
-    else:
-        resultado_final.append("\n✅ Nenhuma violação foi encontrada. O lema do bombeamento **não foi violado** com essa cadeia.")
-        resultado_final.append("⚠️ Isso **não prova** que a linguagem é regular — apenas que essa cadeia específica não violou o lema.")
+# Linguagem 1: { aⁿ | n ≥ 0 }
+def linguagem_somente_a(s):
+    return all(c == 'a' for c in s)
 
-    return "\n".join(resultado_final)
-
-
-# -----------------------------
-# Definição da linguagem L = { aⁿbⁿ | n ≥ 1 }
-# -----------------------------
+# Linguagem 2: { aⁿbⁿ | n ≥ 1 }
 def linguagem_an_bn(s):
-    n_a = 0
-    n_b = 0
+    n_a, n_b = 0, 0
     estado = 0
     for char in s:
         if estado == 0:
             if char == 'a':
                 n_a += 1
             elif char == 'b':
-                if n_a == 0:
-                    return False
                 estado = 1
                 n_b += 1
             else:
@@ -77,19 +50,52 @@ def linguagem_an_bn(s):
         elif estado == 1:
             if char == 'b':
                 n_b += 1
-            elif char == 'a':
-                return False
             else:
                 return False
     return n_a == n_b and n_a > 0
 
-def linguagem_so_a(s):
-    return all(char == 'a' for char in s)
+# Linguagem 3: { (ab)ⁿ | n ≥ 0 }
+def linguagem_ab_n(s):
+    if len(s) % 2 != 0:
+        return False
+    for i in range(0, len(s), 2):
+        if s[i:i+2] != 'ab':
+            return False
+    return True
 
+def menu():
+    print("\n=== Teste do Lema do Bombeamento ===")
+    print("Escolha a linguagem:")
+    print("1 - L = { aⁿ | n ≥ 0 }")
+    print("2 - L = { aⁿbⁿ | n ≥ 1 }")
+    print("3 - L = { (ab)ⁿ | n ≥ 0 }")
 
-# Teste com cadeia que violará
-p = 3
-w = "aaaaaa"
-resultado = testar_lema_bombeamento(linguagem_so_a, p, w)
-print(resultado)
-print('nota 10')
+    opcao = input("Digite o número da linguagem: ")
+
+    if opcao == '1':
+        linguagem = linguagem_somente_a
+    elif opcao == '2':
+        linguagem = linguagem_an_bn
+    elif opcao == '3':
+        linguagem = linguagem_ab_n
+    else:
+        print("Opção inválida.")
+        return
+
+    try:
+        valor_p = int(input("Digite o valor de bombeamento p: "))
+    except ValueError:
+        print("Valor de p inválido. Digite um número inteiro.")
+        return
+
+    cadeia_w = input("Digite a cadeia w (use apenas 'a' e 'b') com comprimento ≥ p: ")
+
+    if len(cadeia_w) < valor_p:
+        print("A cadeia w é menor que p. O lema não se aplica.")
+    else:
+        resultado = testar_lema_bombeamento(linguagem, valor_p, cadeia_w)
+        print("\nResultado final:")
+        print(resultado)
+
+if __name__ == "__main__":
+    menu()
